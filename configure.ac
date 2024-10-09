@@ -2893,10 +2893,9 @@ if test "$with_uhdr" != 'no'; then
     failed=0
     passed=0
 
-    PKG_CHECK_MODULES([UHDR],[libuhdr >= 1.0],[have_uhdr=yes],[have_uhdr=no])
+    PKG_CHECK_MODULES([UHDR],[libuhdr >= 1.2.0],[have_uhdr=yes],[have_uhdr=no])
     CFLAGS="$CFLAGS $UHDR_CFLAGS"
     LIBS="$LIBS $UHDR_LIBS"
-    AC_LANG_PUSH([C++])
     AC_CHECK_HEADER([ultrahdr_api.h],[passed=`expr $passed + 1`],[failed=`expr $failed + 1`])
     AC_CHECK_LIB([uhdr],[uhdr_create_decoder],[passed=`expr $passed + 1`],[failed=`expr $failed + 1`],[])
 
@@ -2916,7 +2915,6 @@ if test "$with_uhdr" != 'no'; then
     else
         AC_MSG_RESULT([no])
     fi
-    AC_LANG_POP([C++])
 fi
 
 AM_CONDITIONAL([UHDR_DELEGATE],[test "$have_uhdr" = 'yes'])
@@ -3140,15 +3138,15 @@ AC_DEFINE_UNQUOTED([EXECUTABLE_PATH],["$DEFINE_EXECUTABLE_PATH"],[Directory wher
 AC_SUBST([EXECUTABLE_PATH])
 
 # Path to ImageMagick lib
-LIBRARY_PATH="${LIB_DIR}/${LIBRARY_RELATIVE_PATH}"
-DEFINE_LIBRARY_PATH="${LIB_DIR}/${LIBRARY_RELATIVE_PATH}/"
+LIBRARY_ABSOLUTE_PATH="${LIB_DIR}/${LIBRARY_RELATIVE_PATH}"
+DEFINE_LIBRARY_ABSOLUTE_PATH="${LIB_DIR}/${LIBRARY_RELATIVE_PATH}/"
 case "${build_os}" in
   mingw* )
-    DEFINE_LIBRARY_PATH=`$WinPathScript "$DEFINE_LIBRARY_PATH" 1`
+    DEFINE_LIBRARY_ABSOLUTE_PATH=`$WinPathScript "$DEFINE_LIBRARY_ABSOLUTE_PATH" 1`
     ;;
 esac
-AC_DEFINE_UNQUOTED([LIBRARY_PATH],["$DEFINE_LIBRARY_PATH"],[Directory where architecture-dependent files live.])
-AC_SUBST([LIBRARY_PATH])
+AC_DEFINE_UNQUOTED([LIBRARY_ABSOLUTE_PATH],["$DEFINE_LIBRARY_ABSOLUTE_PATH"],[Directory where architecture-dependent files live.])
+AC_SUBST([LIBRARY_ABSOLUTE_PATH])
 
 #
 # path to local binaries
@@ -3165,7 +3163,7 @@ AC_SUBST([LIB_BIN_DIR])
 
 LIB_BIN_DIR_RELATIVE_PATH=$LIB_BIN_DIR
 AC_SUBST([LIB_BIN_DIR_RELATIVE_PATH])
-LIB_BIN_DIR_PATH="${LIBRARY_PATH}/${LIB_BIN_DIR_RELATIVE_PATH}"
+LIB_BIN_DIR_PATH="${LIBRARY_ABSOLUTE_PATH}/${LIB_BIN_DIR_RELATIVE_PATH}"
 AC_SUBST([LIB_BIN_DIR_PATH])
 
 #
@@ -3185,7 +3183,7 @@ AC_SUBST([MODULES_DIRNAME])
 
 MODULES_RELATIVE_PATH="${MODULES_DIRNAME}"
 AC_SUBST([MODULES_RELATIVE_PATH])
-MODULES_PATH="${LIBRARY_PATH}/${MODULES_RELATIVE_PATH}"
+MODULES_PATH="${LIBRARY_ABSOLUTE_PATH}/${MODULES_RELATIVE_PATH}"
 AC_SUBST([MODULES_PATH])
 
 #
@@ -3278,7 +3276,7 @@ AC_SUBST([SHAREARCH_DIRNAME])
 
 SHAREARCH_RELATIVE_PATH="${SHAREARCH_DIRNAME}"
 AC_SUBST([SHAREARCH_RELATIVE_PATH])
-SHAREARCH_PATH="${LIBRARY_PATH}/${SHAREARCH_RELATIVE_PATH}"
+SHAREARCH_PATH="${LIBRARY_ABSOLUTE_PATH}/${SHAREARCH_RELATIVE_PATH}"
 AC_SUBST([SHAREARCH_PATH])
 
 #
@@ -3432,7 +3430,7 @@ dejavu_font_dir=''
 if test "${with_dejavu_font_dir}" != 'default'; then
   dejavu_font_dir="${with_dejavu_font_dir}/"
 else
-  for font_dir in "${prefix}/share/dejavu/fonts/" '/usr/share/fonts/dejavu/'; do
+  for font_dir in "${prefix}/share/fonts/dejavu" "${prefix}/share/dejavu-serif-fonts/fonts/" '/usr/share/fonts/dejavu-serif-fonts/' '/usr/share/fonts/truetype/dejavu/'; do
     if test -f "${font_dir}DejaVuSerif.ttf"; then
       dejavu_font_dir="${font_dir}"
       break 1
@@ -3497,7 +3495,14 @@ AC_MSG_CHECKING([for URW-base35 fonts directory])
 urw_base35_font_dir=''
 if test "${with_urw_base35_font_dir}" != 'default'; then
   urw_base35_font_dir="${with_urw_base35_font_dir}/"
-fi
+else
+  for font_dir in "${prefix}/share/urw-base35/fonts/" "${prefix}/share/fonts/opentype/urw-base35" '/usr/share/fonts/urw-base35/' '/usr/share/fonts/opentype/urw-base35/' '/usr/share/fonts/type1/urw-base35/'; do
+    if test -f "${font_dir}URWGothic-Book.otf"; then
+      urw_base35_font_dir="${font_dir}"
+      break 1
+    fi
+  done
+fi 
 if test "${urw_base35_font_dir}x" != 'x'; then
   type_include_files="${type_include_files} "'<include file="type-urw-base35.xml" />'
   AC_MSG_RESULT([$urw_base35_font_dir])
@@ -3512,7 +3517,7 @@ windows_font_dir=''
 if test "${with_windows_font_dir}" != 'default'; then
   windows_font_dir="${with_windows_font_dir}/"
 else
-  for font_dir in '/usr/X11R6/lib/X11/fonts/truetype/' '/usr/X11R7/lib/X11/fonts/truetype/' '/usr/share/fonts/msttcore/' '/usr/share/fonts/microsoft/' '/usr/share/fonts/truetype/msttcorefonts/'; do
+  for font_dir in '/usr/share/wine/fonts/' '/usr/share/fonts/msttcore/' '/usr/share/fonts/microsoft/' '/usr/share/fonts/truetype/msttcorefonts/'; do
     if test -f "${font_dir}arial.ttf"; then
       windows_font_dir="${font_dir}"
       break 1
