@@ -185,6 +185,12 @@ typedef struct _SVGInfo
     svgDepth;
 } SVGInfo;
 
+/*    
+  Global declarations.
+*/
+static SplayTreeInfo
+  *svg_tree = (SplayTreeInfo *) NULL;
+
 /*
   Static declarations.
 */
@@ -2653,10 +2659,43 @@ static void SVGEndElement(void *context,const xmlChar *name)
     {
       if (LocaleCompare((const char *) name,"image") == 0)
         {
+          char
+            *text;
+
+          Image
+            *image;
+
+          ImageInfo
+            *image_info = AcquireImageInfo();
+
+          if (svg_info->url == (char*) NULL)
+            {
+              image_info=DestroyImageInfo(image_info);
+              (void) FormatLocaleFile(svg_info->file,"pop graphic-context\n");
+              break;
+            }
+          if (GetValueFromSplayTree(svg_tree,svg_info->url) != (const char *) NULL)
+            {
+              image_info=DestroyImageInfo(image_info);
+              (void) ThrowMagickException(svg_info->exception,GetMagickModule(),
+                DrawError,"VectorGraphicsNestedTooDeeply","`%s'",svg_info->url);
+              break;
+            }
+          (void) AddValueToSplayTree(svg_tree,ConstantString(svg_info->url),
+            (void *) 1);
+          (void) CopyMagickString(image_info->filename,svg_info->url,
+            MagickPathExtent);
+          image=ReadImage(image_info,svg_info->exception);
+          image_info=DestroyImageInfo(image_info);
+          if (image != (Image *) NULL)
+            image=DestroyImage(image);
+          (void) DeleteNodeFromSplayTree(svg_tree,svg_info->url);
+          text=EscapeString(svg_info->url,'\"');
           (void) FormatLocaleFile(svg_info->file,
             "image Over %g,%g %g,%g \"%s\"\n",svg_info->bounds.x,
             svg_info->bounds.y,svg_info->bounds.width,svg_info->bounds.height,
-            svg_info->url);
+            text);
+          text=DestroyString(text);
           (void) FormatLocaleFile(svg_info->file,"pop graphic-context\n");
           break;
         }
@@ -2869,11 +2908,15 @@ static void SVGEndElement(void *context,const xmlChar *name)
     {
       if (LocaleCompare((char *) name,"use") == 0)
         {
+          char
+            *text;
+
           if ((svg_info->bounds.x != 0.0) || (svg_info->bounds.y != 0.0))
             (void) FormatLocaleFile(svg_info->file,"translate %g,%g\n",
               svg_info->bounds.x,svg_info->bounds.y);
-          (void) FormatLocaleFile(svg_info->file,"use \"url(%s)\"\n",
-            svg_info->url);
+          text=EscapeString(svg_info->url,'\"');
+          (void) FormatLocaleFile(svg_info->file,"use \"url(%s)\"\n",text);
+          text=DestroyString(text);
           (void) FormatLocaleFile(svg_info->file,"pop graphic-context\n");
           break;
         }
@@ -3326,6 +3369,9 @@ ModuleExport size_t RegisterSVGImage(void)
   MagickInfo
     *entry;
 
+  if (svg_tree == (SplayTreeInfo *) NULL)
+    svg_tree=NewSplayTree(CompareSplayTreeString,RelinquishMagickMemory,
+      (void *(*)(void *)) NULL);
   *version='\0';
 #if defined(LIBXML_DOTTED_VERSION)
   (void) CopyMagickString(version,"XML " LIBXML_DOTTED_VERSION,
@@ -3341,9 +3387,7 @@ ModuleExport size_t RegisterSVGImage(void)
   entry=AcquireMagickInfo("SVG","SVG","Scalable Vector Graphics");
   entry->decoder=(DecodeImageHandler *) ReadSVGImage;
   entry->encoder=(EncodeImageHandler *) WriteSVGImage;
-#if defined(MAGICKCORE_RSVG_DELEGATE)
   entry->flags^=CoderDecoderThreadSupportFlag;
-#endif
   entry->mime_type=ConstantString("image/svg+xml");
   if (*version != '\0')
     entry->version=ConstantString(version);
@@ -3354,9 +3398,7 @@ ModuleExport size_t RegisterSVGImage(void)
   entry->decoder=(DecodeImageHandler *) ReadSVGImage;
 #endif
   entry->encoder=(EncodeImageHandler *) WriteSVGImage;
-#if defined(MAGICKCORE_RSVG_DELEGATE)
   entry->flags^=CoderDecoderThreadSupportFlag;
-#endif
   entry->mime_type=ConstantString("image/svg+xml");
   if (*version != '\0')
     entry->version=ConstantString(version);
@@ -3379,9 +3421,7 @@ ModuleExport size_t RegisterSVGImage(void)
   entry->decoder=(DecodeImageHandler *) ReadSVGImage;
 #endif
   entry->encoder=(EncodeImageHandler *) WriteSVGImage;
-#if defined(MAGICKCORE_RSVG_DELEGATE)
   entry->flags^=CoderDecoderThreadSupportFlag;
-#endif
   entry->magick=(IsImageFormatHandler *) IsSVG;
   (void) RegisterMagickInfo(entry);
   return(MagickImageCoderSignature);
@@ -3414,6 +3454,8 @@ ModuleExport void UnregisterSVGImage(void)
   (void) UnregisterMagickInfo("RSVG");
 #endif
   (void) UnregisterMagickInfo("MSVG");
+  if (svg_tree != (SplayTreeInfo *) NULL)
+    svg_tree=DestroySplayTree(svg_tree);
 }
 
 /*
