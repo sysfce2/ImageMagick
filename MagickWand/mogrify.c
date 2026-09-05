@@ -3940,10 +3940,7 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
                 (void) set_file_timestamp(image->filename,&properties);
             }
             if (*backup_filename != '\0')
-              {
-                (void) remove_utf8(image->filename);
-                (void) remove_utf8(backup_filename);
-              }
+              (void) remove_utf8(backup_filename);
           }
         else
           if (*backup_filename != '\0')
