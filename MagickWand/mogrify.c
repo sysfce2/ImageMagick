@@ -3941,7 +3941,7 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
             if (file < 0)
               *backup_filename='\0';
             else
-              file=close(file)-1;
+              file=close_utf8(file)-1;
           }
         /*
           Write transmogrified image to disk.
