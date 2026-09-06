@@ -3943,10 +3943,12 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
         {
           Image *clone_image = CloneImageList(image,exception);
           if (clone_image != (Image *) NULL)
-            status&=(MagickStatusType) WriteImages(image_info,clone_image,
-              (*backup_filename != '\0') ? backup_filename :
-              clone_image->filename,exception);
-          clone_image=DestroyImageList(clone_image);
+            {
+              status&=(MagickStatusType) WriteImages(image_info,clone_image,
+                (*backup_filename != '\0') ? backup_filename :
+                clone_image->filename,exception);
+              clone_image=DestroyImageList(clone_image);
+            }
         }
         if (status != MagickFalse)
           {
