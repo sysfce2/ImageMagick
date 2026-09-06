@@ -3904,6 +3904,9 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
         if ((LocaleCompare(image->filename,"-") != 0) &&
             (IsPathWritable(image->filename) != MagickFalse))
           {
+            int
+              file = -1;
+
             RandomInfo
               *random_info;
 
@@ -3913,7 +3916,7 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
             random_info=AcquireRandomInfo();
             (void) CopyMagickString(backup_filename,image->filename,
               MagickPathExtent);
-            for (j=0; j < 100; j++)
+            for (j=0; j < TMP_MAX; j++)
             {
               StringInfo
                 *key_info;
@@ -3926,15 +3929,19 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
                 break;
               key_bytes=GetStringInfoDatum(key_info);
               (void) FormatLocaleString(backup_filename,MagickPathExtent,
-                "%s~%02x%02x%02x%02x",image->filename,key_bytes[0],key_bytes[1],
-                key_bytes[2],key_bytes[3]);
+                "%s-%02x%02x%02x%02x~",image->filename,key_bytes[0],
+                key_bytes[1],key_bytes[2],key_bytes[3]);
               key_info=DestroyStringInfo(key_info);
-              if (IsPathAccessible(backup_filename) == MagickFalse)
+              file=open_utf8(backup_filename,O_RDWR | O_CREAT | O_EXCL |
+                O_BINARY | O_NOFOLLOW,S_MODE);
+              if ((file >= 0) || (errno != EEXIST))
                 break;
             }
             random_info=DestroyRandomInfo(random_info);
-            if (IsPathAccessible(backup_filename) != MagickFalse)
+            if (file < 0)
               *backup_filename='\0';
+            else
+              file=close(file)-1;
           }
         /*
           Write transmogrified image to disk.
