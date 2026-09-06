@@ -93,19 +93,6 @@ static inline MagickBooleanType is_symlink_utf8(const char *path)
 #endif
 }
 
-static inline int link_utf8(const char *source,const char *destination)
-{
-  int
-    status = -1;
-
-  (void) source;
-  (void) destination;
-#if defined(MAGICKCORE_HAVE_LINK)
-  status=link(source,destination);
-#endif
-  return(status);
-}
-
 static inline ssize_t MagickRead(int fd,void *buffer,size_t extent)
 {
   unsigned char *p = (unsigned char *) buffer;

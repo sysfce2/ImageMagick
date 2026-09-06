@@ -3905,7 +3905,7 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
             (IsPathWritable(image->filename) != MagickFalse))
           {
             /*
-              Rename image file as backup.
+              Generate a temporary filename to write the new image to.
             */
             (void) CopyMagickString(backup_filename,image->filename,
               MagickPathExtent);
@@ -3916,16 +3916,21 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
               if (IsPathAccessible(backup_filename) == MagickFalse)
                 break;
             }
-            if ((IsPathAccessible(backup_filename) != MagickFalse) ||
-                (rename_utf8(image->filename,backup_filename) != 0))
+            if (IsPathAccessible(backup_filename) != MagickFalse)
               *backup_filename='\0';
           }
         /*
           Write transmogrified image to disk.
         */
         image_info->synchronize=MagickTrue;
-        status&=(MagickStatusType) WriteImages(image_info,image,image->filename,
-          exception);
+        {
+          Image *clone_image = CloneImageList(image,exception);
+          if (clone_image != (Image *) NULL)
+            status&=(MagickStatusType) WriteImages(image_info,clone_image,
+              (*backup_filename != '\0') ? backup_filename :
+              clone_image->filename,exception);
+          clone_image=DestroyImageList(clone_image);
+        }
         if (status != MagickFalse)
           {
             {
@@ -3938,11 +3943,14 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
                 (void) set_file_timestamp(image->filename,&properties);
             }
             if (*backup_filename != '\0')
-              (void) remove_utf8(backup_filename);
+              {
+                if (rename_utf8(backup_filename,image->filename) != 0)
+                  status=MagickFalse;
+              }
           }
         else
           if (*backup_filename != '\0')
-            (void) rename_utf8(backup_filename,image->filename);
+            (void) remove_utf8(backup_filename);
         RemoveAllImageStack();
         continue;
       }
