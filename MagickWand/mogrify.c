@@ -3904,18 +3904,35 @@ WandExport MagickBooleanType MogrifyImageCommand(ImageInfo *image_info,
         if ((LocaleCompare(image->filename,"-") != 0) &&
             (IsPathWritable(image->filename) != MagickFalse))
           {
+            RandomInfo
+              *random_info;
+
             /*
               Generate a temporary filename to write the new image to.
             */
+            random_info=AcquireRandomInfo();
             (void) CopyMagickString(backup_filename,image->filename,
               MagickPathExtent);
-            for (j=0; j < 6; j++)
+            for (j=0; j < 100; j++)
             {
-              (void) ConcatenateMagickString(backup_filename,"~",
-                MagickPathExtent);
+              StringInfo
+                *key_info;
+
+              unsigned char
+                *key_bytes;
+
+              key_info=GetRandomKey(random_info,4);
+              if (key_info == (StringInfo *) NULL)
+                break;
+              key_bytes=GetStringInfoDatum(key_info);
+              (void) FormatLocaleString(backup_filename,MagickPathExtent,
+                "%s~%02x%02x%02x%02x",image->filename,key_bytes[0],key_bytes[1],
+                key_bytes[2],key_bytes[3]);
+              key_info=DestroyStringInfo(key_info);
               if (IsPathAccessible(backup_filename) == MagickFalse)
                 break;
             }
+            random_info=DestroyRandomInfo(random_info);
             if (IsPathAccessible(backup_filename) != MagickFalse)
               *backup_filename='\0';
           }
