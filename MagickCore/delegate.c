@@ -1628,10 +1628,6 @@ static MagickBooleanType CopyDelegateFile(const char *source,
   const char *destination,const MagickBooleanType overwrite,
   ExceptionInfo *exception)
 {
-#if !defined(O_NOFOLLOW)
-#define O_NOFOLLOW 0
-#endif
-
   int
     destination_file = -1,
     source_file = -1;
